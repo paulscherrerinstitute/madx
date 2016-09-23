@@ -1,0 +1,16 @@
+package:
+  name: madx
+  version: 0.0.1
+
+source:
+  path: ../
+
+requirements:
+  build:
+    - python
+  run:
+    - python
+
+about:
+  home: https://git.psi.ch/
+  license: GPLv3

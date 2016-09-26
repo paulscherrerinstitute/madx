@@ -57,16 +57,20 @@ def execute(instructions=''):
         output = process.communicate(instructions.encode())[0]
 
         # Read the results
-        try:
-            with open(temporary_file, 'r') as t_file:
-                results = t_file.read().splitlines()
-        except:
-            logging.debug('Unable to read output file')
+        if os.path.isfile(temporary_file):
+            try:
+                with open(temporary_file, 'r') as t_file:
+                    results = t_file.read().splitlines()
+            except Exception:
+                logging.debug('Unable to read output file')
+                results = None
+        else:
             results = None
 
     finally:
-        # Ensure that temporary file gets deleted
-        os.remove(temporary_file)
+        if os.path.isfile(temporary_file):
+            # Ensure that temporary file gets deleted
+            os.remove(temporary_file)
 
     return results, output.decode().split('\n')
 

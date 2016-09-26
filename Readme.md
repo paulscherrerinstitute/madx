@@ -11,3 +11,10 @@ results, output = execute(instructions)
 ```
 
 The execute method accepts a list of strings containing the madx instructions. The results and the output of the madx execution are returned in two different variables. Each of them is a list of strings with the respective output.
+
+# Installation
+The package is currently supported for Linux and Mac OS X. It can be easily installed in an Anaconda Python installation by
+
+```bash
+conda install -c paulscherrerinstitute madx
+```

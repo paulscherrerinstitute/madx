@@ -1,0 +1,1 @@
+python -m madx.madx OptServScript.madx > test.dat

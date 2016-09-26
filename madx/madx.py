@@ -2,6 +2,7 @@ import subprocess
 import re
 import uuid
 import os
+import logging
 
 madx_binary = None
 
@@ -56,8 +57,12 @@ def execute(instructions=''):
         output = process.communicate(instructions.encode())[0]
 
         # Read the results
-        with open(temporary_file, 'r') as t_file:
-            results = t_file.read().splitlines()
+        try:
+            with open(temporary_file, 'r') as t_file:
+                results = t_file.read().splitlines()
+        except:
+            logging.debug('Unable to read output file')
+            results = None
 
     finally:
         # Ensure that temporary file gets deleted
@@ -77,8 +82,6 @@ if __name__ == '__main__':
         # inp = re.sub(r'^(twiss.*,file=")OptServScript.dat(";)$', r'\1%s\2' % temporary_file, inp, flags=re.MULTILINE)
         #
         # print(inp)
-
-
 
     # print(get_madx_binary())
     print('\n'.join(execute(inp)[0]))

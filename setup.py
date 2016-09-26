@@ -12,7 +12,7 @@ def read(fname):
 
 setup(
     name="madx",
-    version="0.0.1",
+    version="0.0.2",
     author="Paul Scherrer Institute",
     author_email="daq@psi.ch",
     description=("MADX"),

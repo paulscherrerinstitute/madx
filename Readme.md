@@ -5,8 +5,25 @@ The package is self contained and has no dependencies.
 # Usage
 Currently the package provides a simple wrapper around the madx command
 
+
 ```python
 import madx
+
+instructions = madx.Script()
+# ... use append() function to add instructions 
+instructions.append('exit;')
+
+results, output = instructions.execute()
+```
+
+
+```python
+import madx
+
+instructions = []
+# ... adding
+instructions.append('exit;')
+
 results, output = execute(instructions)
 ```
 

@@ -1,0 +1,11 @@
+@ NAME             %07s "R56DATA"
+@ TYPE             %04s "USER"
+@ TITLE            %08s "no-title"
+@ ORIGIN           %22s "MAD-X 5.02.00 Linux 64"
+@ DATE             %08s "21/09/16"
+@ TIME             %08s "13.32.22"
+* NAME                              R56 
+$ %s                                %le 
+ "NONE"                   0.05510492972
+ "NONE"                   0.02068567928
+ "NONE"                 2.574296531e-07

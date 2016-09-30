@@ -46,6 +46,25 @@ Both `global_variables` and `variables` are dictionary with key value pairs. Tab
 
 Note: If you are interested in the raw results of madx as string, there is a `raw_results` optional parameter to the `execute` function. If this is set to True the data attribute of the return value holds a list of strings.
 
+This is how you work with the resulting table:
+
+```
+# Get the result table of the return value of the execute command
+table  = results.data.table
+
+# Get all the columns of the table
+column_names = table.columns
+
+# 2 ways to get the column named NAME
+column_1 = table.NAME
+column_1 = table['NAME']
+
+# Get row of a specific index
+table.loc[1]
+
+# Select all rows in which the value in the NAME column is DRIFT_1
+table.loc[table['NAME'] == 'DRIFT_1']
+```
 
 
 # Installation

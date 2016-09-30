@@ -3,6 +3,7 @@ import re
 import uuid
 import os
 import logging
+import pandas
 
 # Different kind of regex patterns for matching different outputs of madx
 pattern_twiss = re.compile(r'^(twiss.*,file=")[a-z,A-Z,0-9,.]+(";)$', flags=re.MULTILINE)
@@ -40,7 +41,7 @@ def get_madx_binary():
     return madx_binary
 
 
-def execute(instructions=''):
+def execute(instructions='', raw_results=False):
     """
     Execute madx with the passed instructions
 
@@ -86,16 +87,6 @@ def execute(instructions=''):
         logging.info('Matched for write output')
         output_mode = WRITE
 
-
-    # Table will be
-    # ^@ (global) variables
-    # @ name format value
-    # ^* name of column
-    # ^$ format/type
-    # values
-
-    # Each table has a name
-
     try:
         # Create madx process
         process = subprocess.Popen([get_madx_binary()], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -107,12 +98,17 @@ def execute(instructions=''):
         # Read the results
         if os.path.isfile(temporary_file):
             try:
-                with open(temporary_file, 'r') as t_file:
-                    results = t_file.read().splitlines()
-
-                    logging.info('Parsing result files')
-                    # TODO need to handle the output
-                    # TODO need to parse results based on output_mode
+                logging.info('Parsing result files')
+                if raw_results:
+                    with open(temporary_file, 'r') as t_file:
+                        results = t_file.read().splitlines()
+                else:
+                    if output_mode == SAVE:
+                        results = read_save_data(temporary_file)
+                    elif output_mode == TWISS or output_mode == WRITE:
+                        results = read_twiss_write_data(temporary_file)
+                    else:
+                        logging.warning('Output mode not supported')
 
             except Exception:
                 logging.debug('Unable to read output file')
@@ -125,10 +121,118 @@ def execute(instructions=''):
             # Ensure that temporary file gets deleted
             os.remove(temporary_file)
 
-    return results, output.decode().split('\n')
+    return Result(results, output.decode().split('\n'))
 
 
-class Script:
+def resolve_type(formatting, value):
+    """
+    Resolve value type based on formatting string
+    :param formatting:
+    :param value:
+    :return:
+    """
+    if formatting.endswith('s'):
+        return value.rstrip('"').lstrip('"')
+    elif formatting == '%le':
+        return float(value)
+    else:
+        logging.info('Cannot determine type of variable')
+        return value
+
+
+def read_twiss_write_data(filename):
+    """
+    Read the data from the madx twiss and write commands
+
+    Structure of the output:
+    ----
+    ^@ (global) variables - [name] [format] [value]
+    ^* name of column
+    ^$ format/type
+    values
+
+    :param filename: Name of the data file
+    :return:
+    """
+
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+
+    global_variables = dict()
+    pattern_global_variable = re.compile(r'^@\s+(\S+)\s+(%\S+)\s+(.+)$')
+
+    pattern_column_names = re.compile(r'^\*\s+((\S+)\s+)*$')
+    pattern_column_format = re.compile(r'^\$\s+((\S+)\s+)*$')
+    pattern_data = re.compile(r'^\s*((\S+)\s*)*$')
+
+    data_list = []
+
+    for line in lines:
+        # Check if lines holds global variables
+        result = pattern_global_variable.match(line)
+        if result:
+            global_variables[result.group(1)] = resolve_type(result.group(2), result.group(3))
+            continue
+
+        # ---- DATA SECTION OF FILE
+
+        # Check if line holds column names
+        result = pattern_column_names.match(line)
+        if result:
+            columns = result.group(0).lstrip('*').split()
+            continue
+
+        # Check if line holds column formats
+        result = pattern_column_format.match(line)
+        if result:
+            column_formats = result.group(0).lstrip('$').split()
+            continue
+
+        # Check if line holds data
+        result = pattern_data.match(line)
+        if result:
+            data = line.split()
+            # Resolve data type
+            for i in range(len(data)):
+                data[i] = resolve_type(column_formats[i], data[i])
+            data_list.append(data)
+
+    return Data(global_variables, None, pandas.DataFrame(data_list, columns=columns))
+
+
+def read_save_data(filename):
+    """
+    Read data from madx save command
+    :param filename: name of the file to read
+    :return: Dictionary of variables
+    """
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+
+    variables = dict()
+    pattern_variable = re.compile(r'^(\S+)\s+=\s+(.+);$')
+
+    for line in lines:
+        result = pattern_variable.match(line)
+        if result:
+            variables[result.group(1)] = float(result.group(2))
+    return Data(None, variables, None)
+
+
+class Result:
+    def __init__(self, data, output):
+        self.data = data
+        self.output = output
+
+
+class Data:
+    def __init__(self, global_variables, variables, table):
+        self.global_variables = global_variables
+        self.variables = variables
+        self.table = table
+
+
+class Instructions:
 
     def __init__(self):
         self.buffer = []
@@ -139,21 +243,30 @@ class Script:
     def clear(self):
         self.buffer = []
 
-    def execute(self):
-        return execute(self.buffer)
+    def execute(self, raw_results=False):
+        return execute(self.buffer, raw_results=raw_results)
 
 
 if __name__ == '__main__':
 
+    import argparse
     import sys
     # temporary_file = '/tmp/' + str(uuid.uuid4())
 
-    with open(sys.argv[1], 'r') as f:
-        inp = f.read().splitlines()
-        # inp = '\n'.join(inp)
-        # inp = re.sub(r'^(twiss.*,file=")OptServScript.dat(";)$', r'\1%s\2' % temporary_file, inp, flags=re.MULTILINE)
-        #
-        # print(inp)
+    argsPars = argparse.ArgumentParser()
+    argsPars.add_argument('file', help="madx input file")
+    argsPars.add_argument('-r', '--raw', action="store_true", help='Return raw output of madx')
 
-    # print(get_madx_binary())
-    print('\n'.join(execute(inp)[0]))
+    arguments = argsPars.parse_args()
+
+    input_file = arguments.file
+    raw_output = arguments.raw
+
+    with open(input_file, 'r') as f:
+        inp = f.read().splitlines()
+
+    if raw_output:
+        print('\n'.join(execute(inp, raw_results=True).results))
+    else:
+        print(execute(inp).data.table)
+

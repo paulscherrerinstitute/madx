@@ -3,7 +3,7 @@
 The correct operation of the madx package can be checked by execute this command (inside this directory): 
 
 ```
-python -m madx.madx input.madx | diff output.dat -
+python -m madx.madx input.madx --raw | diff output.dat -
 ```
 
 The output should be something like this (i.e. only 2 lines, holding the date and time should be different - eventually there is a third line stating the OS if you are executing this on Mac OS X):

@@ -48,7 +48,7 @@ Note: If you are interested in the raw results of madx as string, there is a `ra
 
 This is how you work with the resulting table:
 
-```
+```python
 # Get the result table of the return value of the execute command
 table  = results.data.table
 

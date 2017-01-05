@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/paulscherrerinstitute/madx.svg?branch=master)](https://travis-ci.org/paulscherrerinstitute/madx)
+
 # Overview
 madx is a Python wrapper around the madx library from CERN (http://madx.web.cern.ch/madx/).
 The package is self contained and has no dependencies.

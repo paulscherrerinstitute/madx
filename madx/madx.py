@@ -36,7 +36,7 @@ def get_madx_binary():
             madx_binary = pkg_resources.resource_filename('madx', 'madx-macosx64')
     elif platform.uname()[0].lower() == 'linux':
         if platform.architecture()[0] == '64bit':
-            madx_binary = pkg_resources.resource_filename('madx', 'madx-linux64')
+            madx_binary = pkg_resources.resource_filename('madx', 'madx-linux64-intel')
 
     return madx_binary
 
@@ -87,13 +87,17 @@ def execute(instructions='', raw_results=False):
         logging.info('Matched for write output')
         output_mode = WRITE
 
+    results, output, errors = None, None, None
     try:
         # Create madx process
         process = subprocess.Popen([get_madx_binary()], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
 
         # Pass instructions to stdin
-        output = process.communicate(instructions.encode())[0]
+        output0, errors0 = process.communicate(instructions.encode())
+        output = output0.decode().split('\n')
+        errors = errors0.decode().split('\n')
+
 
         # Read the results
         if os.path.isfile(temporary_file):
@@ -112,16 +116,22 @@ def execute(instructions='', raw_results=False):
 
             except Exception:
                 logging.debug('Unable to read output file')
-                results = None
         else:
-            results = None
+            logging.debug('Twiss file is not there')
+
+            # For detailed debug:
+            #logging.debug('output mode %i' % output_mode)
+            #from pdb import set_trace
+            #from PyQt4.QtCore import pyqtRemoveInputHook
+            #pyqtRemoveInputHook()
+            #set_trace()
 
     finally:
         if os.path.isfile(temporary_file):
             # Ensure that temporary file gets deleted
             os.remove(temporary_file)
 
-    return Result(results, output.decode().split('\n'))
+    return Result(results, output, errors)
 
 
 def resolve_type(formatting, value):
@@ -220,9 +230,10 @@ def read_save_data(filename):
 
 
 class Result:
-    def __init__(self, data, output):
+    def __init__(self, data, output, errors=None):
         self.data = data
         self.output = output
+        self.errors = errors
 
 
 class Data:
